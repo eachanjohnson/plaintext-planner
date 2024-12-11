@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+
+if [ "$1" == "-h" ]
+then
+	>&2 echo "Usage: clean [<todo file>]"
+	exit 1
+fi
+
+script_dir=$(dirname -- "$0")
+datestamp=$(date +%Y%m%d-%H%M%S)
+todo_file="${1:-$script_dir/../todo/todo.txt}"
+todo_tempfile="$todo_file.$datestamp.temp"
+
+grep --color=none "\S" "$todo_file" \
+| sed 's/^[A-Z]) //;s/^([A-Z]) //' \
+> "$todo_tempfile" \
+&& mv "$todo_tempfile" "$todo_file"
+
+a2z=({A..Z})
+i=0
+while IFS="" read -r p || [ -n "$p" ]
+do
+	printf '%s) %s\n' "${a2z[i]}" "$p" | tee /dev/stderr
+	i=$i+1
+done < "$todo_file" > "$todo_tempfile" \
+&& mv "$todo_tempfile" "$todo_file"
+
+>&2 echo -e "\033[47m\033[35m>> Tasks remaining: $(grep -c '.+' $todo_file)\033[0m"
+
+bash "$script_dir"/logger CLEAN "0" "$todo_file" events

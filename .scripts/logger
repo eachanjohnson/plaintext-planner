@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+if [ -z "$1" ]
+then
+	>&2 echo "Usage: logger <action> <task> [<todo file>] [<log name>]"
+	exit 1
+fi
+
+script_dir=$(dirname -- "$0")
+datestamp=$(date +%Y%m%d-%H%M%S)
+epoch_s=$(date +%s)
+
+action="$1"
+task="${2:-0}"
+todo_file="${3:-$script_dir/../todo/todo.txt}"
+logname="${4:-events}"
+
+task_hash=$(echo "$task" | sha256sum | cut -c-8)
+
+logfile="$script_dir/../logs/$logname.log"
+logfile_temp="$logfile.$epoch_s.temp"
+if [ ! -e "$logfile" ]
+then
+	mkdir -p $(dirname "$logfile") \
+	&& touch "$logfile"
+fi
+
+echo "$datestamp + $epoch_s :: $action :: $todo_file :: $task_hash :: $task" >> "$logfile"

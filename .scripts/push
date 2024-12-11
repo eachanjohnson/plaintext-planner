@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+datestamp=$(date +%Y%m%d-%H%M%S)
+
+message="${1:-Manual push}"
+
+git add . \
+&& git commit -m "$datestamp : $message" \
+&& git push
+
+bash "$script_dir"/logger PUSH "0" "$message" events

@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+
+if [ -z "$1" ] || [ -z "$2" ]
+then
+	>&2 echo "Usage: add <letter> <task> [<todo file>]"
+	exit 1
+fi
+
+if [[ ${2} != *"@"* ]]
+then
+	>&2 echo "ERROR: No @-context in task"
+	exit 1
+fi
+
+if [[ ${2} != *"+"* ]]
+then
+	>&2 echo "ERROR: No +-project in task"
+	exit 1
+fi
+
+script_dir=$(dirname -- "$0")
+datestamp=$(date +%Y%m%d-%H%M%S)
+letter="$1"
+task="$2"
+todo_file="${3:-$script_dir/../todo/todo.txt}"
+todo_tempfile="$todo_file.$datestamp.temp"
+duplicate_letter_line="$(grep -e "^$letter"') ' -e "^($letter"') ' $todo_file)"
+
+if [ ! -z "${duplicate_letter_line}" ]
+then
+	letter="$letter.1"
+	>&2 echo -e "\033[93m>>> DUPLICATE PRIORITY : $duplicate_letter_line\033[0m"
+fi
+
+
+cat "$todo_file" <(printf '\n%b) %s\n' "$letter" "$task") \
+| sort -k1 \
+| cut -d' ' -f2- \
+> "$todo_tempfile" 
+
+>&2 echo "== $todo_file"
+bash "$script_dir"/clean "$todo_tempfile" \
+&& mv "$todo_tempfile" "$todo_file"
+
+bash "$script_dir"/logger ADD "$task" "$todo_file@$letter" events

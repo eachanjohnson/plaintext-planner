@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+
+if [ -z "$1" ]
+then
+	>&2 echo "Usage: done.sh <letter> [<todo file>] [<done file>]"
+	exit 1
+fi
+
+script_dir=$(dirname -- "$0")
+datestamp=$(date +%Y%m%d-%H%M%S)
+todo_file="${2:-$script_dir/../todo/todo.txt}"
+todo_tempfile="$todo_file.$datestamp.temp"
+done_file="${3:-$script_dir/../todo/done.txt}"
+done_tempfile="$done_file.$datestamp.temp"
+task="$(grep -e "^$1"') ' -e "^($1"') ' $todo_file | cut -d' ' -f2-)"
+
+if [ -z "${task}" ]
+then
+	>&2 echo "No line for letter $1 in todo file $todo_file"
+	exit 1
+else
+	line="$datestamp :: $task"
+fi
+
+cat <(echo "$line") $done_file \
+> $done_tempfile \
+&& mv $done_tempfile $done_file
+
+>&2 echo -e "\033[42m\033[97m$line\033[0m"
+
+grep -v -e "^$1"') ' -e "^($1"') ' $todo_file \
+| cut -d' ' -f2- \
+> $todo_tempfile
+
+>&2 echo "== $todo_file"
+bash $script_dir/clean "$todo_tempfile" \
+&& mv "$todo_tempfile" "$todo_file"
+
+bash "$script_dir"/logger DONE "$task" "$todo_file@$1..$done_file" events
